@@ -1,0 +1,4 @@
+__pycache__/
+defense_presentation/viewer/*.glb.txt
+defense_presentation/renders/preview.png
+*.blend1

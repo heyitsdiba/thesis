@@ -1,0 +1,219 @@
+<title>HEK293T Cell Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;750&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<style>
+  /* Layout: one large 3D stage, a strip of region buttons under it, colour key beside (stacks on phones) */
+  :root {
+    --bg: #eef2f7;
+    --panel: #ffffff;
+    --fg: #22304a;
+    --muted: #5d6b84;
+    --line: #d5dde9;
+    --accent: #3d6fb6;
+    --stage: radial-gradient(120% 90% at 50% 40%, #ffffff 0%, #e4ebf4 100%);
+    --font-body: "Manrope", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121a27; --panel: #1a2434; --fg: #e3e9f3; --muted: #9aa8bf; --line: #2c3a50; --accent: #82aee8;
+      --stage: radial-gradient(120% 90% at 50% 40%, #2a374c 0%, #151e2c 100%);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121a27; --panel: #1a2434; --fg: #e3e9f3; --muted: #9aa8bf; --line: #2c3a50; --accent: #82aee8;
+    --stage: radial-gradient(120% 90% at 50% 40%, #2a374c 0%, #151e2c 100%);
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 40px; display: grid; gap: 18px; }
+  header { display: grid; gap: 4px; }
+  .eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(26px, 4vw, 38px); font-weight: 750; letter-spacing: -.01em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 68ch; }
+  .main { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 18px; align-items: start; }
+  @media (max-width: 820px) { .main { grid-template-columns: minmax(0, 1fr); } }
+  .stage { position: relative; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--stage); }
+  #mv { width: 100%; aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; cursor: grab; }
+  #mv canvas { display: block; width: 100%; height: 100%; }
+  .hint { position: absolute; left: 14px; bottom: 12px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); pointer-events: none; }
+  .regions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .regions button {
+    font: 600 14px/1 var(--font-body); color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+    border-radius: 999px; padding: 10px 16px; cursor: pointer;
+  }
+  .regions button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .regions button:focus-visible, .hotspot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  aside { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 12px; min-width: 0; }
+  aside h2 { margin: 0; font-size: 13px; font-family: var(--font-mono); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .key { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+  .key li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; align-items: center; font-size: 14px; }
+  .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12); }
+  .note { font-size: 13px; color: var(--muted); margin: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+  .hotspot {
+    display: block; border: 0; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+    font: 600 12px/1 var(--font-body); color: var(--fg); background: var(--panel);
+    box-shadow: 0 1px 4px rgba(20, 30, 50, .25); white-space: nowrap;
+    position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); visibility: hidden;
+  }
+  #status { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Thesis defense · 3D test model · option A preview</span>
+    <h1>HEK293T producer cell, cutaway</h1>
+    <p>This is the same .glb file that can go into PowerPoint as a native 3D model. Drag to rotate, scroll or pinch to zoom, and pick a region to fly the camera there. In the final deck, each region becomes a zoom slide for one of your pathways.</p>
+  </header>
+
+  <div class="main">
+    <div style="display:grid; gap:12px; min-width:0">
+      <div class="stage">
+        <div id="mv" role="img" aria-label="3D cutaway model of a HEK293T cell"></div>
+        <button class="hotspot" type="button" data-region="nucleus" data-pos="-0.4,3.4,-0.4">Nucleus</button>
+        <button class="hotspot" type="button" data-region="golgi" data-pos="3.5,2.3,2.6">Golgi</button>
+        <button class="hotspot" type="button" data-region="cytoplasm" data-pos="4.8,1.2,4.4">Cytoplasm</button>
+        <span class="hint" id="status">Loading model (4.9 MB)…</span>
+      </div>
+      <div class="regions" role="group" aria-label="Camera regions">
+        <button type="button" id="r-overview" data-region="overview" aria-pressed="true">Whole cell</button>
+        <button type="button" id="r-nucleus" data-region="nucleus" aria-pressed="false">Nucleus</button>
+        <button type="button" id="r-golgi" data-region="golgi" aria-pressed="false">Golgi apparatus</button>
+        <button type="button" id="r-cytoplasm" data-region="cytoplasm" aria-pressed="false">Cytoplasm</button>
+      </div>
+    </div>
+
+    <aside>
+      <h2>Colour key</h2>
+      <ul class="key">
+        <li><span class="sw" style="background:#9ec5ea"></span>Plasma membrane</li>
+        <li><span class="sw" style="background:#b59ad6"></span>Nuclear envelope and pores</li>
+        <li><span class="sw" style="background:#6d4aa8"></span>Nucleoli</li>
+        <li><span class="sw" style="background:#9b7bd0"></span>Chromatin</li>
+        <li><span class="sw" style="background:#7fd1c7"></span>Endoplasmic reticulum</li>
+        <li><span class="sw" style="background:#f28fb1"></span>Golgi apparatus</li>
+        <li><span class="sw" style="background:#f29e6d"></span>Mitochondria</li>
+        <li><span class="sw" style="background:#8fcf6f"></span>Lysosomes</li>
+        <li><span class="sw" style="background:#6fa8dc"></span>Endosomes</li>
+        <li><span class="sw" style="background:#ffd36e"></span>Vesicles</li>
+        <li><span class="sw" style="background:#7cc47f"></span>Microtubules</li>
+        <li><span class="sw" style="background:#3d7dbf"></span>Centrioles</li>
+      </ul>
+      <p class="note">Scale is roughly 1 unit = 1 µm. The cell is about 17 × 13 µm and 5 µm tall. Real-time lighting here is simpler than the rendered stills.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function () {
+  const host = document.getElementById("mv");
+  const status = document.getElementById("status");
+  const stage = host.parentElement;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!window.THREE || !THREE.GLTFLoader) { status.textContent = "The 3D library could not load. Check your connection and reload."; return; }
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.8;
+  host.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  if (THREE.RoomEnvironment) {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+  }
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xb8c4d6, 0.25));
+  const key = new THREE.DirectionalLight(0xffffff, 0.9);
+  key.position.set(14, 22, 16);
+  scene.add(key);
+
+  const camera = new THREE.PerspectiveCamera(30, 16 / 10, 0.1, 500);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.minDistance = 3;
+  controls.maxDistance = 70;
+
+  // camera presets: target in model units (glTF y-up, open wedge faces +x/+z); theta/phi in degrees
+  const views = {
+    overview:  { target: [0, 1.6, 0],      theta: 45, phi: 52, dist: 27 },
+    nucleus:   { target: [-0.4, 2.2, -0.4], theta: 40, phi: 42, dist: 13 },
+    golgi:     { target: [3.5, 1.4, 2.6],  theta: 62, phi: 48, dist: 8 },
+    cytoplasm: { target: [3.8, 0.8, 4.2],  theta: 28, phi: 58, dist: 10 },
+  };
+  function viewPose(v) {
+    const t = new THREE.Vector3(...v.target);
+    const th = THREE.MathUtils.degToRad(v.theta), ph = THREE.MathUtils.degToRad(v.phi);
+    const p = t.clone().add(new THREE.Vector3(Math.sin(ph) * Math.sin(th), Math.cos(ph), Math.sin(ph) * Math.cos(th)).multiplyScalar(v.dist));
+    return { t, p };
+  }
+  let flight = null;
+  function go(name) {
+    const to = viewPose(views[name]);
+    document.querySelectorAll(".regions button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.region === name)));
+    if (reduceMotion) { camera.position.copy(to.p); controls.target.copy(to.t); return; }
+    flight = { from: { p: camera.position.clone(), t: controls.target.clone() }, to, start: performance.now(), dur: 1400 };
+  }
+  const start = viewPose(views.overview);
+  camera.position.copy(start.p);
+  controls.target.copy(start.t);
+  controls.addEventListener("start", () => { flight = null; });
+  document.querySelectorAll("[data-region]").forEach(el => el.addEventListener("click", () => go(el.dataset.region)));
+
+  const hotspots = [...document.querySelectorAll(".hotspot")].map(el => ({ el, pos: new THREE.Vector3(...el.dataset.pos.split(",").map(Number)) }));
+
+  function resize() {
+    const w = host.clientWidth, h = host.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(host);
+  resize();
+
+  const ease = x => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  let loaded = false;
+  function frame(now) {
+    if (flight) {
+      const k = Math.min(1, (now - flight.start) / flight.dur), e = ease(k);
+      camera.position.lerpVectors(flight.from.p, flight.to.p, e);
+      controls.target.lerpVectors(flight.from.t, flight.to.t, e);
+      if (k >= 1) flight = null;
+    }
+    controls.update();
+    renderer.render(scene, camera);
+    if (loaded) {
+      const w = host.clientWidth, h = host.clientHeight;
+      for (const hs of hotspots) {
+        const v = hs.pos.clone().project(camera);
+        const on = v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1;
+        hs.el.style.visibility = on ? "visible" : "hidden";
+        hs.el.style.left = ((v.x + 1) / 2 * w) + "px";
+        hs.el.style.top = ((1 - v.y) / 2 * h) + "px";
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  fetch("hek293t_cell.glb.txt")
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+    .then(b64 => {
+      const bin = atob(b64.trim());
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      new THREE.GLTFLoader().parse(buf.buffer, "", gltf => {
+        scene.add(gltf.scene);
+        loaded = true;
+        status.textContent = "Drag to rotate · scroll or pinch to zoom · right-drag to pan";
+      }, () => { status.textContent = "The model file could not be read. Reload the page to try again."; });
+    })
+    .catch(() => { status.textContent = "The model could not load. Reload the page to try again."; });
+})();
+</script>
