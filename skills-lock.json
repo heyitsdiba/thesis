@@ -49,6 +49,12 @@
       "skillPath": ".agents/skills/presentation-craft/SKILL.md",
       "computedHash": "84135239f9175186bc929e58b55f3f3d51d2c2d8a2ea5a45925568c55ebeb9fb"
     },
+    "remove-ai-marks": {
+      "source": "guillaumemeyer/watermarks-remover",
+      "sourceType": "github",
+      "skillPath": "skills/remove-ai-marks/SKILL.md",
+      "computedHash": "5863e8126818ddb1360ecc7691b025d9aecf318e0efa0e472cd938c703d88622"
+    },
     "revise": {
       "source": "jameshemson/slides",
       "sourceType": "github",
